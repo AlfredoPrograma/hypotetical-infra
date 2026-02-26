@@ -7,6 +7,7 @@ This repository contains reusable Terraform modules to provision standardized in
 - Lambda functions for background jobs
 - S3 buckets for object storage
 - RDS instances for data storage
+- ECR repositories for container image storage
 
 The goal is to provide a consistent, repeatable way to create infrastructure aligned with the hypothetical **(In)fra** company standards.
 
@@ -34,3 +35,13 @@ Main features:
 - Deletion protection enabled and final snapshot required on deletion
 - Automated backups and PostgreSQL CloudWatch log exports enabled
 - Useful outputs such as database endpoint and ARN
+
+## `ecr_repository` module
+
+The `modules/ecr_repository` module creates an AWS ECR repository with standardized defaults for immutable tagging, encryption, and environment tagging.
+
+Main features:
+- ECR repository provisioning with immutable image tags (`IMMUTABLE`)
+- Encryption configuration with optional custom KMS key
+- Standardized tagging using `Name` and `Environment`
+- Useful outputs such as repository URL and ARN
