@@ -57,6 +57,27 @@ resource "aws_iam_role" "task" {
   }
 }
 
+data "aws_iam_policy_document" "task_s3" {
+  count = length(var.s3_bucket_arns) > 0 ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = var.s3_actions
+    resources = flatten([
+      var.s3_bucket_arns,
+      [for arn in var.s3_bucket_arns : "${arn}/*"],
+    ])
+  }
+}
+
+resource "aws_iam_role_policy" "task_s3" {
+  count = length(var.s3_bucket_arns) > 0 ? 1 : 0
+
+  name   = "${var.service_name}-task-s3-access"
+  role   = aws_iam_role.task.id
+  policy = data.aws_iam_policy_document.task_s3[0].json
+}
+
 resource "aws_security_group" "service" {
   name        = "${var.service_name}-sg"
   description = "Security group for ECS Fargate service"

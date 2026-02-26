@@ -104,6 +104,23 @@ variable "log_retention_in_days" {
   default     = 7
 }
 
+variable "s3_bucket_arns" {
+  description = "S3 bucket ARNs the ECS task role can access. Leave empty to skip S3 policy attachment."
+  type        = list(string)
+  default     = []
+}
+
+variable "s3_actions" {
+  description = "IAM S3 actions allowed for the ECS task role."
+  type        = list(string)
+  default = [
+    "s3:GetObject",
+    "s3:PutObject",
+    "s3:DeleteObject",
+    "s3:ListBucket",
+  ]
+}
+
 variable "environment" {
   description = "Deployment environment for tagging and validation. Allowed values: development, staging, production."
   type        = string

@@ -65,6 +65,8 @@ module "ecs_service_api" {
 | `ingress_cidr_blocks` | `list(string)` | No | `["0.0.0.0/0"]` | CIDR blocks allowed to access the container port. |
 | `assign_public_ip` | `bool` | No | `true` | Whether to assign a public IP to tasks. |
 | `log_retention_in_days` | `number` | No | `7` | CloudWatch log retention period in days. |
+| `s3_bucket_arns` | `list(string)` | No | `[]` | S3 bucket ARNs the ECS task role can access. |
+| `s3_actions` | `list(string)` | No | `["s3:GetObject","s3:PutObject","s3:DeleteObject","s3:ListBucket"]` | IAM S3 actions allowed for the ECS task role. |
 
 ## Outputs
 
