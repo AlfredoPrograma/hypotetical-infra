@@ -8,6 +8,7 @@ This repository contains reusable Terraform modules to provision standardized in
 - S3 buckets for object storage
 - RDS instances for data storage
 - ECR repositories for container image storage
+- Custom VPCs with minimum networking components
 
 The goal is to provide a consistent, repeatable way to create infrastructure aligned with the hypothetical **(In)fra** company standards.
 
@@ -54,3 +55,15 @@ Main features:
 - Lambda function provisioning with `package_type = "Image"`
 - Configurable function name, execution role ARN, and container image URI
 - Useful outputs such as function name, function ARN, and invoke ARN
+
+## `custom_vpc` module
+
+The `modules/custom_vpc` module creates a custom AWS VPC with the minimum required networking resources to make it operational.
+
+Main features:
+- VPC creation with configurable CIDR block and DNS settings
+- One or more public subnets across selected Availability Zones
+- Optional private subnet creation across selected Availability Zones
+- Internet Gateway attachment for internet connectivity
+- Public route table with default route (`0.0.0.0/0`) associated to all public subnets
+- Useful outputs such as VPC ID/ARN, subnet ID, internet gateway ID, and route table ID
