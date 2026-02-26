@@ -8,6 +8,7 @@ This repository contains reusable Terraform modules to provision standardized in
 - S3 buckets for object storage
 - RDS instances for data storage
 - ECR repositories for container image storage
+- ECS clusters and reusable Fargate services with autoscaling
 - Custom VPCs with minimum networking components
 
 The goal is to provide a consistent, repeatable way to create infrastructure aligned with the hypothetical **(In)fra** company standards.
@@ -61,9 +62,29 @@ Main features:
 The `modules/custom_vpc` module creates a custom AWS VPC with the minimum required networking resources to make it operational.
 
 Main features:
-- VPC creation with configurable CIDR block and DNS settings
+- VPC creation with configurable CIDR block
 - One or more public subnets across selected Availability Zones
 - Optional private subnet creation across selected Availability Zones
 - Internet Gateway attachment for internet connectivity
 - Public route table with default route (`0.0.0.0/0`) associated to all public subnets
 - Useful outputs such as VPC ID/ARN, subnet ID, internet gateway ID, and route table ID
+
+## `ecs_cluster` module
+
+The `modules/ecs_cluster` module creates a reusable AWS ECS cluster that can host multiple services.
+
+Main features:
+- ECS cluster provisioning
+- Standardized tagging using `Name` and `Environment`
+- Useful outputs such as cluster ID, name, and ARN
+
+## `ecs_service` module
+
+The `modules/ecs_service` module creates an AWS ECS Fargate service attached to an existing ECS cluster.
+
+Main features:
+- Reusable service deployment to a parent ECS cluster (`cluster_name`)
+- Task definition with CloudWatch Logs integration
+- Service security group creation with configurable ingress CIDRs
+- CPU and memory target-tracking autoscaling policies
+- Useful outputs such as service ARN, task definition ARN, and role ARNs

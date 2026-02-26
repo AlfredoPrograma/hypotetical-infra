@@ -23,5 +23,5 @@ module "custom_vpc" {
       availability_zone = "us-east-1a"
     }
   ]
-  environment              = "development"
+  environment = "development"
 }
