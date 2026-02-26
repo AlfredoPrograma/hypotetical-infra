@@ -45,3 +45,12 @@ Main features:
 - Encryption configuration with optional custom KMS key
 - Standardized tagging using `Name` and `Environment`
 - Useful outputs such as repository URL and ARN
+
+## `lambda_from_container` module
+
+The `modules/lambda_from_container` module creates an AWS Lambda function from a container image hosted in a registry such as ECR.
+
+Main features:
+- Lambda function provisioning with `package_type = "Image"`
+- Configurable function name, execution role ARN, and container image URI
+- Useful outputs such as function name, function ARN, and invoke ARN
