@@ -21,3 +21,16 @@ Main features:
 - Optional public access block configuration
 - Optional CORS configuration through input rules
 - Useful outputs such as bucket ARN and bucket domain name
+
+## `rds_postgres` module
+
+The `modules/rds_postgres` module creates an AWS RDS PostgreSQL instance with standardized defaults for secure networking, encryption, backups, and observability.
+
+Main features:
+- PostgreSQL RDS instance provisioning with private networking (`publicly_accessible = false`)
+- DB subnet group creation from provided subnets (at least 2 required)
+- Database name also used as instance identifier and final snapshot identifier
+- Storage encryption enabled with optional custom KMS key
+- Deletion protection enabled and final snapshot required on deletion
+- Automated backups and PostgreSQL CloudWatch log exports enabled
+- Useful outputs such as database endpoint and ARN

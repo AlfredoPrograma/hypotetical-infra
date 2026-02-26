@@ -30,7 +30,6 @@ variable "encryption_key_arn" {
   nullable    = true
   sensitive   = true
   default     = null
-
 }
 
 variable "environment" {
