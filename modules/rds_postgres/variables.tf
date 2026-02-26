@@ -12,6 +12,7 @@ variable "db_storage_amount" {
 
 variable "db_instance_class" {
   description = "Indicates AWS instance class for database hosting."
+  type        = string
   default     = "db.t3.micro"
 }
 
@@ -69,4 +70,3 @@ variable "environment" {
     error_message = "Environment must be one of the following options: \"development\", \"staging\" or \"production\""
   }
 }
-
