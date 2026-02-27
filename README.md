@@ -1,137 +1,120 @@
 # (In)fra
 
-This repository contains reusable Terraform modules to provision standardized infrastructure components for different services, including:
+This repo contains reusable Terraform modules that we use to provision standard infrastructure across services.
 
-- EC2 instances
-- Standardized VPC configurations
-- Lambda functions for background jobs
-- S3 buckets for object storage
-- RDS instances for data storage
-- ECR repositories for container image storage
-- ECS clusters and reusable Fargate services with autoscaling
-- Custom VPCs with minimum networking components
-- Terraform state buckets for remote state backends
+Instead of rebuilding everything from scratch every time, these modules give us a consistent way to spin up the basics in AWS.
 
-The goal is to provide a consistent, repeatable way to create infrastructure aligned with the hypothetical **(In)fra** company standards.
+It currently covers:
 
-## `s3_bucket` module
+* Standard VPC setups
+* Lambda functions for background jobs
+* S3 buckets
+* RDS databases
+* ECR repositories
+* ECS clusters with reusable Fargate services (including autoscaling)
+* Terraform state buckets for remote backends
 
-The `modules/s3_bucket` module creates an AWS S3 bucket with baseline configuration for secure and predictable usage across environments.
+The goal is simple: make infrastructure predictable and repeatable, aligned with the internal **(In)fra** standards.
 
-Main features:
-- Bucket creation with standardized tagging (`Name` and `Environment`)
-- Bucket versioning enabled
-- Server-side encryption enabled by default (SSE-S3 with `AES256`)
-- Optional public access block configuration
-- Optional CORS configuration through input rules
-- Useful outputs such as bucket ARN and bucket domain name
+## Deployment
 
-## `rds_postgres` module
+### Prerequisites
 
-The `modules/rds_postgres` module creates an AWS RDS PostgreSQL instance with standardized defaults for secure networking, encryption, backups, and observability.
+Before running anything, make sure you have:
 
-Main features:
-- PostgreSQL RDS instance provisioning with private networking (`publicly_accessible = false`)
-- DB subnet group creation from provided subnets (at least 2 required)
-- Database name also used as instance identifier and final snapshot identifier
-- Storage encryption enabled with optional custom KMS key
-- Deletion protection enabled and final snapshot required on deletion
-- Automated backups and PostgreSQL CloudWatch log exports enabled
-- Useful outputs such as database endpoint and ARN
+* An AWS account
+* GitHub OIDC provider configured (`token.actions.githubusercontent.com`)
+* Terraform `1.14.2`
+* Permissions for `app/common` and `app/development`
+* Proper environment values set in `.tfvars` files (e.g. `app/common/terraform.tfvars`)
 
-## `ecr_repository` module
+### 1. Create Shared Infrastructure
 
-The `modules/ecr_repository` module creates an AWS ECR repository with standardized defaults for immutable tagging, encryption, and environment tagging.
+This sets up the shared components (including remote state).
 
-Main features:
-- ECR repository provisioning with immutable image tags (`IMMUTABLE`)
-- Encryption configuration with optional custom KMS key
-- Standardized tagging using `Name` and `Environment`
-- Useful outputs such as repository URL and ARN
+```bash
+terraform -chdir=app/common init
+terraform -chdir=app/common apply
+```
 
-## `lambda_from_container` module
+### 2. Configure GitHub Secrets
 
-The `modules/lambda_from_container` module creates an AWS Lambda function from a container image hosted in a registry such as ECR.
+Add the following secrets in your repository:
 
-Main features:
-- Lambda function provisioning with `package_type = "Image"`
-- Configurable function name, execution role ARN, and container image URI
-- Useful outputs such as function name, function ARN, and invoke ARN
+* `TF_STATE_BUCKET`
+* `TF_STATE_REGION`
+* `AWS_REGION`
+* `AWS_ROLE_TO_ASSUME_ARN`
 
-## `custom_vpc` module
+These are used by GitHub Actions to authenticate via OIDC and assume the correct IAM role (no static AWS keys required).
 
-The `modules/custom_vpc` module creates a custom AWS VPC with the minimum required networking resources to make it operational.
+### 3. Deploy Base Infrastructure
 
-Main features:
-- VPC creation with configurable CIDR block
-- One or more public subnets across selected Availability Zones
-- Optional private subnet creation across selected Availability Zones
-- Internet Gateway attachment for internet connectivity
-- Public route table with default route (`0.0.0.0/0`) associated to all public subnets
-- Useful outputs such as VPC ID/ARN, subnet ID, internet gateway ID, and route table ID
+Initialize Terraform with the shared backend:
 
-## `ecs_cluster` module
+```bash
+terraform -chdir=app/development init -reconfigure \
+  -backend-config="bucket=<TF_STATE_BUCKET>" \
+  -backend-config="region=<TF_STATE_REGION>" \
+  -backend-config="key=app/development/terraform.tfstate"
 
-The `modules/ecs_cluster` module creates a reusable AWS ECS cluster that can host multiple services.
+terraform -chdir=app/development apply
+```
 
-Main features:
-- ECS cluster provisioning
-- Standardized tagging using `Name` and `Environment`
-- Useful outputs such as cluster ID, name, and ARN
+This provisions the environment-level infrastructure.
 
-## `ecs_service` module
+### 4. Push Image and Deploy Service
 
-The `modules/ecs_service` module creates an AWS ECS Fargate service attached to an existing ECS cluster.
+After building and pushing your Docker image to ECR, run:
 
-Main features:
-- Reusable service deployment to a parent ECS cluster (`cluster_name`)
-- Task definition with CloudWatch Logs integration
-- Service security group creation with configurable ingress CIDRs
-- CPU and memory target-tracking autoscaling policies
-- Useful outputs such as service ARN, task definition ARN, and role ARNs
+```bash
+terraform -chdir=app/development apply
+```
 
-## `tf_state_bucket` module
+Terraform updates the ECS service with the new image.
 
-The `modules/tf_state_bucket` module creates a dedicated S3 bucket for Terraform remote state.
+### 5. CI/CD
 
-Main features:
-- State bucket provisioning with standardized tags
-- Versioning enabled for state history
-- Server-side encryption enabled (SSE-S3)
-- Public access blocked on all dimensions
-- Bucket policy denying non-TLS (`aws:SecureTransport = false`) requests
-- Optional lifecycle cleanup for noncurrent versions
+CI/CD runs from:
 
-## Common bootstrap before environment stacks
+```
+.github/workflows/sample-web-deployment.yaml
+```
 
-Use `app/common` to create the Terraform state bucket before running `app/development` or CI/CD deployments.
+On pushes to `main`, GitHub Actions:
 
-Example:
-1. `terraform -chdir=app/common init`
-2. `terraform -chdir=app/common apply -var='tf_state_bucket_name=<globally-unique-bucket-name>'`
-3. Set GitHub secrets:
-   - `TF_STATE_BUCKET=<globally-unique-bucket-name>`
-   - `TF_STATE_REGION=<aws-region>`
+* Authenticates using OIDC
+* Assumes the configured IAM role
+* Runs Terraform
+* Deploys the service
 
-## Development environment deployment order
+## Terraform State (Team Usage)
 
-The `app/development` stack intentionally separates infrastructure provisioning from ECS service rollout to avoid deploying tasks before the image exists in ECR.
+We use a shared S3 backend for Terraform state.
 
-Workflow:
-1. Create base infrastructure only:
-   - `terraform -chdir=app/development apply -var='deploy_nginx_service=false'`
-2. Build and push the container image to ECR with the intended tag.
-3. Deploy ECS service after image exists:
-   - `terraform -chdir=app/development apply -var='deploy_nginx_service=true' -var='nginx_image_tag=<tag>'`
+The state bucket:
 
-When `deploy_nginx_service=true`, Terraform resolves the image digest from ECR and pins ECS to `<repository_url>@<sha256:digest>`.
+* Has versioning enabled
+* Is encrypted
+* Blocks public access
 
-CI note:
-- The GitHub Actions workflow bootstraps only the ECR repository first (`-target=module.sample_web_repository`), pushes the image, and then runs a full apply with `deploy_nginx_service=true` and `nginx_image_tag=<commit_sha>`. This avoids destroying an already-running ECS service on every deployment.
-- The workflow uses a persistent Terraform S3 backend. Configure GitHub repository secrets:
-  - `TF_STATE_BUCKET`: S3 bucket name for Terraform state.
-  - `TF_STATE_REGION`: AWS region where that state bucket exists.
-  - `AWS_REGION`: deployment region for infrastructure resources.
-  - `AWS_ROLE_TO_ASSUME_ARN`: OIDC assumable role with permissions for Terraform, ECR, ECS, and the state bucket.
-- Before the first CI run, migrate any existing local state to S3:
-  - `terraform -chdir=app/development init -migrate-state -reconfigure -backend-config="bucket=<TF_STATE_BUCKET>" -backend-config="region=<TF_STATE_REGION>" -backend-config="key=app/development/terraform.tfstate"`
+All developers and CI use the same backend configuration.
+
+If you're migrating from local state, run:
+
+```bash
+terraform init -migrate-state
+```
+
+After that, avoid local state files.
+
+## Why This Setup
+
+The stack is intentionally simple and practical:
+
+* Terraform modules reduce repetition
+* ECS + ECR provide a managed container platform with minimal ops overhead
+* GitHub Actions + OIDC eliminate long-lived AWS credentials
+* S3 remote state keeps collaboration straightforward
+
+The aim is to ship production ready infrastructure quickly without overengineering things.

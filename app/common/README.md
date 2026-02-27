@@ -10,11 +10,7 @@ Creates the Terraform remote state S3 bucket used by CI/CD and `app/development`
 
 ```bash
 terraform -chdir=app/common init
-terraform -chdir=app/common apply \
-  -var='tf_state_bucket_name=<globally-unique-bucket-name>' \
-  -var='github_actions_role_name=<github-actions-role-name>' \
-  -var='github_oidc_provider_arn=<github-oidc-provider-arn>' \
-  -var='github_repository=<owner/repo>'
+terraform -chdir=app/common apply
 ```
 
 Useful output:
