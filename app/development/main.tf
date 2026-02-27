@@ -20,6 +20,13 @@ module "sample_web_repository" {
   repository_name         = var.repository_name
 }
 
+data "aws_ecr_image" "nginx" {
+  count = var.deploy_nginx_service ? 1 : 0
+
+  repository_name = var.repository_name
+  image_tag       = var.nginx_image_tag
+}
+
 module "ecs" {
   source = "../../modules/ecs_cluster"
 
@@ -29,6 +36,7 @@ module "ecs" {
 }
 
 module "nginx" {
+  count  = var.deploy_nginx_service ? 1 : 0
   source = "../../modules/ecs_service"
 
   environment         = local.environment
@@ -36,7 +44,7 @@ module "nginx" {
   assign_public_ip    = var.nginx_assign_public_ip
   aws_region          = var.aws_region
   cluster_name        = module.ecs.cluster_name
-  container_image     = var.nginx_container_image
+  container_image     = local.nginx_container_image
   container_name      = var.nginx_container_name
   service_name        = var.nginx_service_name
   subnet_ids          = module.vpc.public_subnet_ids

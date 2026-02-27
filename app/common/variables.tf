@@ -32,3 +32,18 @@ variable "tf_state_noncurrent_version_expiration_days" {
   type        = number
   default     = 30
 }
+
+variable "github_actions_role_name" {
+  description = "IAM role name for GitHub Actions OIDC deployments."
+  type        = string
+}
+
+variable "github_oidc_provider_arn" {
+  description = "ARN of the AWS IAM OIDC provider for GitHub (token.actions.githubusercontent.com)."
+  type        = string
+}
+
+variable "github_repository" {
+  description = "GitHub repository in owner/repo format allowed to assume the role from main branch."
+  type        = string
+}

@@ -7,3 +7,11 @@ output "tf_state_bucket" {
     region             = var.aws_region
   }
 }
+
+output "github_actions_oidc_role" {
+  description = "GitHub Actions OIDC role outputs."
+  value = {
+    role_name = module.github_actions_oidc_role.role_name
+    role_arn  = module.github_actions_oidc_role.role_arn
+  }
+}

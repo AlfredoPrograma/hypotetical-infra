@@ -28,38 +28,46 @@ data "aws_iam_policy_document" "assume_role" {
   }
 }
 
-data "aws_iam_policy_document" "deployment" {
+data "aws_iam_policy_document" "terraform_iam_minimum" {
   statement {
-    sid    = "AllowECRPush"
+    sid    = "AllowManageEcsTaskRoles"
     effect = "Allow"
     actions = [
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:CompleteLayerUpload",
-      "ecr:InitiateLayerUpload",
-      "ecr:PutImage",
-      "ecr:UploadLayerPart"
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:GetRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:PutRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:GetRolePolicy",
+      "iam:ListRolePolicies"
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:iam::*:role/*-ecs-execution-role",
+      "arn:aws:iam::*:role/*-ecs-task-role"
+    ]
   }
 
   statement {
-    sid    = "AllowECSDeploy"
+    sid    = "AllowPassRoleToEcsTasksOnly"
     effect = "Allow"
     actions = [
-      "ecs:DescribeServices",
-      "ecs:DescribeTaskDefinition",
-      "ecs:RegisterTaskDefinition",
-      "ecs:UpdateService"
+      "iam:PassRole"
     ]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "AllowPassRole"
-    effect    = "Allow"
-    actions   = ["iam:PassRole"]
-    resources = ["*"]
+    resources = [
+      "arn:aws:iam::*:role/*-ecs-execution-role",
+      "arn:aws:iam::*:role/*-ecs-task-role"
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
   }
 }
 
@@ -73,8 +81,13 @@ resource "aws_iam_role" "this" {
   }
 }
 
-resource "aws_iam_role_policy" "deployment" {
-  name   = "github-actions-deployment"
+resource "aws_iam_role_policy_attachment" "power_user_access" {
+  role       = aws_iam_role.this.name
+  policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
+}
+
+resource "aws_iam_role_policy" "terraform_iam_minimum" {
+  name   = "github-actions-terraform-iam-minimum"
   role   = aws_iam_role.this.id
-  policy = data.aws_iam_policy_document.deployment.json
+  policy = data.aws_iam_policy_document.terraform_iam_minimum.json
 }

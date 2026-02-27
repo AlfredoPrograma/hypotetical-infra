@@ -84,10 +84,16 @@ variable "nginx_container_name" {
   default     = "nginx"
 }
 
-variable "nginx_container_image" {
-  description = "Container image URI used by nginx service."
+variable "nginx_image_tag" {
+  description = "ECR image tag used by nginx service deployment."
   type        = string
-  default     = "884891704616.dkr.ecr.us-east-1.amazonaws.com/hypotetical-ecr-repository:0.0.1"
+  default     = "0.0.1"
+}
+
+variable "deploy_nginx_service" {
+  description = "Whether to deploy the nginx ECS service. Keep false until image exists in ECR."
+  type        = bool
+  default     = false
 }
 
 variable "nginx_container_port" {

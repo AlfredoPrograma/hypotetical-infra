@@ -10,6 +10,7 @@ This repository contains reusable Terraform modules to provision standardized in
 - ECR repositories for container image storage
 - ECS clusters and reusable Fargate services with autoscaling
 - Custom VPCs with minimum networking components
+- Terraform state buckets for remote state backends
 
 The goal is to provide a consistent, repeatable way to create infrastructure aligned with the hypothetical **(In)fra** company standards.
 
@@ -88,3 +89,49 @@ Main features:
 - Service security group creation with configurable ingress CIDRs
 - CPU and memory target-tracking autoscaling policies
 - Useful outputs such as service ARN, task definition ARN, and role ARNs
+
+## `tf_state_bucket` module
+
+The `modules/tf_state_bucket` module creates a dedicated S3 bucket for Terraform remote state.
+
+Main features:
+- State bucket provisioning with standardized tags
+- Versioning enabled for state history
+- Server-side encryption enabled (SSE-S3)
+- Public access blocked on all dimensions
+- Bucket policy denying non-TLS (`aws:SecureTransport = false`) requests
+- Optional lifecycle cleanup for noncurrent versions
+
+## Common bootstrap before environment stacks
+
+Use `app/common` to create the Terraform state bucket before running `app/development` or CI/CD deployments.
+
+Example:
+1. `terraform -chdir=app/common init`
+2. `terraform -chdir=app/common apply -var='tf_state_bucket_name=<globally-unique-bucket-name>'`
+3. Set GitHub secrets:
+   - `TF_STATE_BUCKET=<globally-unique-bucket-name>`
+   - `TF_STATE_REGION=<aws-region>`
+
+## Development environment deployment order
+
+The `app/development` stack intentionally separates infrastructure provisioning from ECS service rollout to avoid deploying tasks before the image exists in ECR.
+
+Workflow:
+1. Create base infrastructure only:
+   - `terraform -chdir=app/development apply -var='deploy_nginx_service=false'`
+2. Build and push the container image to ECR with the intended tag.
+3. Deploy ECS service after image exists:
+   - `terraform -chdir=app/development apply -var='deploy_nginx_service=true' -var='nginx_image_tag=<tag>'`
+
+When `deploy_nginx_service=true`, Terraform resolves the image digest from ECR and pins ECS to `<repository_url>@<sha256:digest>`.
+
+CI note:
+- The GitHub Actions workflow bootstraps only the ECR repository first (`-target=module.sample_web_repository`), pushes the image, and then runs a full apply with `deploy_nginx_service=true` and `nginx_image_tag=<commit_sha>`. This avoids destroying an already-running ECS service on every deployment.
+- The workflow uses a persistent Terraform S3 backend. Configure GitHub repository secrets:
+  - `TF_STATE_BUCKET`: S3 bucket name for Terraform state.
+  - `TF_STATE_REGION`: AWS region where that state bucket exists.
+  - `AWS_REGION`: deployment region for infrastructure resources.
+  - `AWS_ROLE_TO_ASSUME_ARN`: OIDC assumable role with permissions for Terraform, ECR, ECS, and the state bucket.
+- Before the first CI run, migrate any existing local state to S3:
+  - `terraform -chdir=app/development init -migrate-state -reconfigure -backend-config="bucket=<TF_STATE_BUCKET>" -backend-config="region=<TF_STATE_REGION>" -backend-config="key=app/development/terraform.tfstate"`

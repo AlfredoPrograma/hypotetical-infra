@@ -29,14 +29,14 @@ output "ecs_cluster" {
 
 output "nginx_service" {
   description = "Nginx ECS service outputs."
-  value = {
-    service_name              = module.nginx.service_name
-    service_arn               = module.nginx.service_arn
-    task_definition_arn       = module.nginx.task_definition_arn
-    service_security_group_id = module.nginx.service_security_group_id
-    execution_role_arn        = module.nginx.execution_role_arn
-    task_role_arn             = module.nginx.task_role_arn
-  }
+  value = var.deploy_nginx_service ? {
+    service_name              = module.nginx[0].service_name
+    service_arn               = module.nginx[0].service_arn
+    task_definition_arn       = module.nginx[0].task_definition_arn
+    service_security_group_id = module.nginx[0].service_security_group_id
+    execution_role_arn        = module.nginx[0].execution_role_arn
+    task_role_arn             = module.nginx[0].task_role_arn
+  } : null
 }
 
 output "s3_bucket" {
@@ -54,8 +54,8 @@ output "platform_summary" {
     region                = var.aws_region
     ecr_repository_url    = module.sample_web_repository.repository_url
     ecs_cluster_name      = module.ecs.cluster_name
-    nginx_service_name    = module.nginx.service_name
-    nginx_container_image = var.nginx_container_image
+    nginx_service_name    = var.deploy_nginx_service ? module.nginx[0].service_name : null
+    nginx_container_image = local.nginx_container_image
     static_assets_bucket  = module.s3_bucket.bucket_url
   }
 }

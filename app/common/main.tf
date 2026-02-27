@@ -12,3 +12,12 @@ module "tf_state_bucket" {
   enable_lifecycle_configuration     = var.tf_state_enable_lifecycle_configuration
   noncurrent_version_expiration_days = var.tf_state_noncurrent_version_expiration_days
 }
+
+module "github_actions_oidc_role" {
+  source = "../../modules/github_actions_oidc_role"
+
+  role_name         = var.github_actions_role_name
+  oidc_provider_arn = var.github_oidc_provider_arn
+  github_repository = var.github_repository
+  environment       = local.environment
+}

@@ -4,7 +4,7 @@ Terraform module to create a minimal AWS IAM role for GitHub Actions OIDC deploy
 
 This module is intentionally simple and opinionated:
 - Only allows `main` branch from one repository (`owner/repo`).
-- Adds a built-in inline policy for ECR push + ECS deploy + `iam:PassRole`.
+- Attaches AWS managed `PowerUserAccess` and adds a narrow inline IAM policy for Terraform ECS role operations (`CreateRole`, role policy attach/inline policy updates, and constrained `PassRole`).
 
 ## Usage
 
