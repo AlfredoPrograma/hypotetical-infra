@@ -16,6 +16,11 @@ It currently covers:
 
 The goal is simple: make infrastructure predictable and repeatable, aligned with the internal **(In)fra** standards.
 
+## Architecture Diagram
+
+![App/development sample web architecture](app/development/architecture.drawio.png)
+![Full architecture diagram](app/development/full-architecture.drawio.png)
+
 ## Deployment
 
 ### Prerequisites
@@ -116,5 +121,7 @@ The stack is intentionally simple and practical:
 * ECS + ECR provide a managed container platform with minimal ops overhead
 * GitHub Actions + OIDC eliminate long-lived AWS credentials
 * S3 remote state keeps collaboration straightforward
+
+So the main idea is use simple but powerful tools and services which allow us to create replicable infrastructure following best practices to guarantee scalability and availability for the final applications.
 
 The aim is to ship production ready infrastructure quickly without overengineering things.
